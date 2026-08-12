@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCA II · Room 8012 · Timetable</title>
+<style>
+  :root{
+    --bg:#0e1a14;
+    --panel:#132a1f;
+    --panel-2:#0f2118;
+    --flap:#173626;
+    --amber:#f5b942;
+    --amber-dim:#8a6a2c;
+    --green-led:#5fd97e;
+    --text:#eaf3e9;
+    --text-dim:#9fb6a8;
+    --line:#24462f;
+    --lecture:#3d7bd9;
+    --tutorial:#e0a02e;
+    --lab:#c1533a;
+    --free:#4b5d54;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .board{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Courier New', 'JetBrains Mono', monospace;
+    padding:20px 16px 28px;
+    border-radius:10px;
+    max-width:720px;
+    margin:0 auto;
+  }
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--amber);
+    padding-bottom:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .header h1{
+    font-size:20px;
+    letter-spacing:2px;
+    margin:0;
+    color:var(--amber);
+    text-transform:uppercase;
+  }
+  .header .sub{
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    margin-top:4px;
+  }
+  .clock{
+    font-size:13px;
+    color:var(--green-led);
+    letter-spacing:1px;
+    text-align:right;
+  }
+  .clock .room{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:2px;
+  }
+  .daytabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  .daytab{
+    flex:1;
+    min-width:64px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:10px 4px;
+    text-align:center;
+    font-family:inherit;
+    font-size:12px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    border-radius:4px;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .daytab.active{
+    background:var(--flap);
+    color:var(--amber);
+    border-color:var(--amber-dim);
+  }
+  .daytab .today-dot{
+    display:block;
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:var(--green-led);
+    margin:4px auto 0;
+    visibility:hidden;
+  }
+  .daytab.is-today .today-dot{visibility:visible;}
+  .legend{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
+  .rows{display:flex;flex-direction:column;gap:6px;}
+  .row{
+    display:grid;
+    grid-template-columns:96px 1fr auto;
+    gap:10px;
+    align-items:center;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--free);
+    border-radius:4px;
+    padding:10px 12px;
+    transition:transform .12s;
+  }
+  .row:hover{transform:translateX(2px);}
+  .row.now{
+    border-color:var(--green-led);
+    box-shadow:0 0 0 1px var(--green-led) inset;
+  }
+  .row.type-lecture{border-left-color:var(--lecture);}
+  .row.type-tutorial{border-left-color:var(--tutorial);}
+  .row.type-lab{border-left-color:var(--lab);}
+  .row.type-free{border-left-color:var(--free);}
+  .time{
+    font-size:11.5px;
+    color:var(--text-dim);
+    letter-spacing:.5px;
+  }
+  .info .title{
+    font-size:13.5px;
+    color:var(--text);
+    letter-spacing:.5px;
+  }
+  .info .code{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:2px;
+    letter-spacing:1px;
+  }
+  .tag{
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:3px;
+    white-space:nowrap;
+  }
+  .tag.type-lecture{background:rgba(61,123,217,.18);color:#8fb6f0;}
+  .tag.type-tutorial{background:rgba(224,160,46,.18);color:#f0c878;}
+  .tag.type-lab{background:rgba(193,83,58,.18);color:#f0a48f;}
+  .tag.type-free{background:rgba(75,93,84,.25);color:var(--text-dim);}
+  .now-flag{
+    font-size:9.5px;
+    color:var(--green-led);
+    letter-spacing:1px;
+    margin-left:6px;
+  }
+  .footer{
+    margin-top:16px;
+    font-size:10px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    text-align:center;
+    border-top:1px solid var(--line);
+    padding-top:10px;
+  }
+  @media (max-width:420px){
+    .row{grid-template-columns:1fr;gap:4px;}
+    .time{order:1;}
+    .info{order:2;}
+    .tag{order:3;justify-self:start;}
+  }
+</style>
+</head>
+<body>
+<div class="board" role="region" aria-label="MCA II Room 8012 weekly timetable">
+
+  <div class="header">
+    <div>
+      <h1>Room 8012 · Departures</h1>
+      <div class="sub">MCA II &middot; Autumn 2026&ndash;27</div>
+    </div>
+    <div class="clock">
+      <div id="clockTime">--:--</div>
+      <div class="room" id="clockDate">loading&hellip;</div>
+    </div>
+  </div>
+
+  <div class="daytabs" id="dayTabs"></div>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--lecture)"></i>Lecture</span>
+    <span><i class="swatch" style="background:var(--tutorial)"></i>Tutorial</span>
+    <span><i class="swatch" style="background:var(--lab)"></i>Lab</span>
+    <span><i class="swatch" style="background:var(--free)"></i>Free</span>
+  </div>
+
+  <div class="rows" id="rows"></div>
+
+  <div class="footer">Tap a day above to switch &middot; green outline marks the class running right now</div>
+</div>
+
+<script>
+const schedule = {
+  Monday: [
+    {t:"8:00 – 9:30 AM", code:"MS541", title:"Probability & Statistics", type:"lecture", start:480, end:570},
+    {t:"9:30 – 11:00 AM", code:"CS547", title:"Computer Networks", type:"lecture", start:570, end:660},
+    {t:"11:00 – 11:15 AM", code:"—", title:"Free", type:"free", start:660, end:675},
+    {t:"11:15 AM – 12:00 PM", code:"CS541 Tut", title:"Design & Analysis of Algorithms", type:"tutorial", start:675, end:720},
+    {t:"12:00 – 1:00 PM", code:"—", title:"Free", type:"free", start:720, end:780},
+    {t:"1:00 – 3:00 PM", code:"CS541 Lab", title:"Design & Analysis of Algorithms", type:"lab", start:780, end:900}
+  ],
+  Tuesday: [
+    {t:"8:00 – 9:30 AM", code:"CS541", title:"Design & Analysis of Algorithms", type:"lecture", start:480, end:570},
+    {t:"9:30 – 11:00 AM", code:"HS541", title:"Science, Technology and Society", type:"lecture", start:570, end:660},
+    {t:"11:00 – 11:15 AM", code:"—", title:"Free", type:"free", start:660, end:675},
+    {t:"11:15 AM – 1:00 PM", code:"CS547 Lab", title:"Computer Networks", type:"lab", start:675, end:780}
+  ],
+  Wednesday: [
+    {t:"8:00 – 10:00 AM", code:"CS543", title:"Web Services", type:"lecture", start:480, end:600},
+    {t:"10:00 – 11:15 AM", code:"MS541", title:"Probability & Statistics", type:"lecture", start:600, end:675},
+    {t:"11:15 – 11:30 AM", code:"—", title:"Free", type:"free", start:675, end:690},
+    {t:"11:30 AM – 12:30 PM", code:"CS543 Tut", title:"Web Services", type:"tutorial", start:690, end:750},
+    {t:"12:30 – 1:15 PM", code:"—", title:"Free", type:"free", start:750, end:795},
+    {t:"1:15 – 3:00 PM", code:"CS543 Lab", title:"Web Services", type:"lab", start:795, end:900}
+  ],
+  Thursday: [
+    {t:"8:00 – 9:30 AM", code:"CS547", title:"Computer Networks", type:"lecture", start:480, end:570},
+    {t:"9:30 – 11:00 AM", code:"CS541", title:"Design & Analysis of Algorithms", type:"lecture", start:570, end:660},
+    {t:"11:00 – 11:15 AM", code:"—", title:"Free", type:"free", start:660, end:675},
+    {t:"11:15 AM – 12:00 PM", code:"CS545 Tut", title:"Software Engineering", type:"tutorial", start:675, end:720},
+    {t:"12:00 – 12:45 PM", code:"—", title:"Free", type:"free", start:720, end:765},
+    {t:"12:45 – 3:00 PM", code:"CS545 Lab", title:"Software Engineering", type:"lab", start:765, end:900}
+  ],
+  Friday: [
+    {t:"8:00 – 9:30 AM", code:"HS541", title:"Science, Technology and Society", type:"lecture", start:480, end:570},
+    {t:"9:30 – 11:45 AM", code:"CS545", title:"Software Engineering", type:"lecture", start:570, end:705},
+    {t:"11:45 AM – 12:45 PM", code:"MS541 Tut", title:"Probability & Statistics", type:"tutorial", start:705, end:765},
+    {t:"12:45 PM onward", code:"—", title:"Free", type:"free", start:765, end:1440}
+  ]
+};
+
+const days = Object.keys(schedule);
+const now = new Date();
+const todayName = days.includes(["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()])
+  ? ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()]
+  : null;
+let activeDay = todayName || "Monday";
+const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+function renderTabs(){
+  const wrap = document.getElementById('dayTabs');
+  wrap.innerHTML = '';
+  days.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'daytab' + (d === activeDay ? ' active' : '') + (d === todayName ? ' is-today' : '');
+    btn.innerHTML = d.slice(0,3) + '<span class="today-dot"></span>';
+    btn.onclick = () => { activeDay = d; renderTabs(); renderRows(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function renderRows(){
+  const wrap = document.getElementById('rows');
+  wrap.innerHTML = '';
+  const items = schedule[activeDay];
+  items.forEach(item => {
+    const isNow = activeDay === todayName && nowMinutes >= item.start && nowMinutes < item.end;
+    const row = document.createElement('div');
+    row.className = 'row type-' + item.type + (isNow ? ' now' : '');
+    row.innerHTML = `
+      <div class="time">${item.t}</div>
+      <div class="info">
+        <div class="title">${item.title}${isNow ? '<span class="now-flag">● NOW</span>' : ''}</div>
+        <div class="code">${item.code}</div>
+      </div>
+      <div class="tag type-${item.type}">${item.type}</div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function renderClock(){
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('clockTime').textContent = hh + ':' + mm;
+  document.getElementById('clockDate').textContent = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) + ' · Rm 8012';
+}
+
+renderTabs();
+renderRows();
+renderClock();
+setInterval(renderClock, 30000);
+</script>
+</body>
+</html>
